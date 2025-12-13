@@ -27,7 +27,7 @@ class ContactForm(BaseModel):
 def send_mail(data: ContactForm):
 
     payload = {
-        "from": f"Contact Form <{TO_ADDRESS}>",
+        "from": "onboarding@resend.dev",
         "to": [TO_ADDRESS],
         "subject": "お問い合わせフォームより",
         "text": f"""名前: {data.name}
