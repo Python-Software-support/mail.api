@@ -1,9 +1,7 @@
 import os
+import requests
 from fastapi import FastAPI
 from pydantic import BaseModel
-import smtplib
-from email.mime.text import MIMEText
-from email.utils import formatdate
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -17,8 +15,7 @@ app.add_middleware(
 )
 
 # メール設定
-GMAIL_ADDRESS = os.getenv("GMAIL_ADDRESS")
-GMAIL_APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD")
+RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 TO_ADDRESS = os.getenv("TO_ADDRESS")
 
 class ContactForm(BaseModel):
@@ -29,27 +26,30 @@ class ContactForm(BaseModel):
 @app.post("/send")
 def send_mail(data: ContactForm):
 
-    body = f"""
-名前: {data.name}
+    payload = {
+        "from": "onboarding@resend.dev",
+        "to": [TO_ADDRESS],
+        "subject": "お問い合わせフォームより",
+        "text": f"""名前: {data.name}
 メール: {data.email}
 
 お問い合わせ内容:
 {data.message}
 """
+    }
 
-    msg = MIMEText(body, "plain", "utf-8")
-    msg["Subject"] = "お問い合わせフォームより"
-    msg["From"] = GMAIL_ADDRESS
-    msg["To"] = TO_ADDRESS
-    msg["Date"] = formatdate()
+    headers = {
+        "Authorization": f"Bearer {RESEND_API_KEY}",
+        "Content-Type": "application/json"
+    }
 
-    try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
-            smtp.login(GMAIL_ADDRESS, GMAIL_APP_PASSWORD)
-            smtp.send_message(msg)
+    r = requests.post(
+        "https://api.resend.com/emails",
+        json=payload,
+        headers=headers
+    )
 
+    if r.status_code == 200:
         return {"status": "ok"}
-
-    except Exception as e:
-        print("Error:", e)
-        return {"status": "error", "detail": str(e)}
+    else:
+        return {"status": "error", "detail": r.text}
