@@ -49,7 +49,11 @@ def send_mail(data: ContactForm):
         headers=headers
     )
 
-    if r.status_code == 200:
+    if r.status_code in (200, 201):
         return {"status": "ok"}
     else:
-        return {"status": "error", "detail": r.text}
+        return {
+            "status": "error",
+            "status_code": r.status_code,
+            "detail": r.text
+        }             
